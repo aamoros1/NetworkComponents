@@ -287,8 +287,11 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
                     mimeType: mimeType,
                     timeStamp: .init(),
                     error: nil)
+                self.callbackQueue.async {
+                    self.didCompleteRequest(asyncToken, request: request, response: networkResponse)
+                }
                 
-                didCompleteRequest(asyncToken, request: request, response: networkResponse)
+                
             } catch let error {
                 let mimeType = request.responseMimeType ?? request.headers[HttpHeader.accept] ?? request.mimeType
                 let networkResponse = NetworkResponse(
@@ -298,7 +301,9 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
                     mimeType: mimeType,
                     timeStamp: .init(),
                     error: error)
-                didCompleteRequest(asyncToken, request: request, response: networkResponse)
+                self.callbackQueue.async {
+                    self.didCompleteRequest(asyncToken, request: request, response: networkResponse)
+                }
             }
         }
         return asyncToken
