@@ -11,14 +11,14 @@ public class NetworkRequest: NSObject {
     let url: URL
     let method: String
     var headers: [String: String] = [:]
-    var encoding: String.Encoding = .utf8
-    var cachePolicy = URLRequest.CachePolicy.useProtocolCachePolicy
-    var timeout: TimeInterval = 0
+    public var encoding: String.Encoding = .utf8
+    public var cachePolicy = URLRequest.CachePolicy.useProtocolCachePolicy
+    public var timeout: TimeInterval = 0
     
-    var mimeType: String?
-    var queryParams: [String: String]?
-    var responeType: AnyObject.Type?
-    var responseMimeType: String?
+    public var mimeType: String?
+    public var queryParams: [String: String]?
+    public var responeType: AnyObject.Type?
+    public var responseMimeType: String?
 
     public required init(url: URL, method: String) {
         self.url = url
