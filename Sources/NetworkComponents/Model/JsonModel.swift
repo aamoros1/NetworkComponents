@@ -26,7 +26,6 @@ open class JsonModel: NSObject, DomainModel {
     fileprivate(set) var dictionary: NSMutableDictionary!
 
     /// Reference to a copy of the backing dictionary before editing begins
-    /// - Since: IOS-2797
     fileprivate var beforeEditDictionary: NSDictionary?
 
     // MARK: Class Methods
@@ -80,7 +79,7 @@ open class JsonModel: NSObject, DomainModel {
         do {
             jsonData = try JSONSerialization.data(withJSONObject: jsonDictionary, options: JsonSettings.writingOptions)
         } catch {
-            //Logger.error("Unable to render JSON Data: \(error.localizedDescription)")
+            print("Unable to render JSON Data: \(error.localizedDescription)")
         }
         return jsonData
     }
@@ -118,8 +117,6 @@ open class JsonModel: NSObject, DomainModel {
 
     /**
      Called to save the current state in a separate dictionary before editing.
-     
-     - Since: IOS-2797
      */
     open func beginEdit() {
         self.beforeEditDictionary = JsonModel.dictionaryFromDeepCopy(self.dictionary)
@@ -128,8 +125,6 @@ open class JsonModel: NSObject, DomainModel {
     /**
       Called after editing has completed
       - Parameter commit: true to commit the change, otherwise the previous state is restored if dirty
-     
-      - Since: IOS-2797
      */
     open func endEdit(_ commit: Bool) {
         // If there is a saved state that is dirty, then do commit logic
@@ -153,8 +148,6 @@ open class JsonModel: NSObject, DomainModel {
       Register an observer for change notification.
       - Parameter observer: the observer
       - Parameter hander: the Selector to handler the notificaiton
-     
-      - Since: IOS-2797
      */
     open func addDidChangeObserver(_ observer: AnyObject, handler: Selector) {
         NotificationCenter.default.addObserver(observer, selector: handler,
@@ -164,8 +157,6 @@ open class JsonModel: NSObject, DomainModel {
     /**
       Remove a previously added did change observer.
       - Parameter observer: the observer to remove
-     
-      - Since: IOS-2797
      */
     open func removeDidChangeObserver(_ observer: AnyObject) {
         NotificationCenter.default.removeObserver(observer, name: .jsonModelDidChangeNotification, object: self)
@@ -173,8 +164,6 @@ open class JsonModel: NSObject, DomainModel {
 
     /**
       Post the did change notifcaiton.
-     
-      - Since: IOS-2797
      */
     open func postDidChangeNotification() {
         NotificationCenter.default.post(name: .jsonModelDidChangeNotification, object: self)
@@ -182,8 +171,6 @@ open class JsonModel: NSObject, DomainModel {
 
     /**
      Save the current state regardless of dirty state.
-     
-     - Since: IOS-2797
      */
     open func save() {
         // Subclass can override to proving save feature
@@ -191,8 +178,6 @@ open class JsonModel: NSObject, DomainModel {
 
     /**
       Reset the model by setting all properties to undefined
-     
-     - Since: IOS-2797
      */
     open func reset() {
         for property in self.properties.values {

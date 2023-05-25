@@ -5,6 +5,8 @@
 //
 //
 
+import OSLog
+import Combine
 import Foundation
 
 enum BaseNetworkServiceError: Error {
@@ -14,8 +16,9 @@ enum BaseNetworkServiceError: Error {
 typealias SessionDataHandler = (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
 
 open class BaseNetworkServiceProvider: NSObject {
+    private lazy var logger = Logger(subsystem: "io.\(String(describing: self))", category: String(describing: self))
     private static let defaultRetryAttemps: UInt = 1
-    
+
     /// URLSessionConfiguration assigned during initialization
     private var urlSessionConfiguration: URLSessionConfiguration
 
@@ -23,13 +26,13 @@ open class BaseNetworkServiceProvider: NSObject {
     public private(set) lazy var syncQueue: DispatchQueue = DispatchQueue(
         label: "\(type(of: self))#\(hashValue).syncQueue",
         qos: .background)
-    
+
     /// Callback queue used for dispatching completed network responses to free up the session operation queue.
     /// This is a serial queue so that clients receive responses in the order that they are requested.
     public private(set) lazy var callbackQueue: DispatchQueue = DispatchQueue(
         label: "\(type(of: self))#\(hashValue).callbackQueue",
         qos: .background)
-    
+
     /// OperationQueue used for processing requests. This operation queue uses it's own managed dispatch queue,
     /// and is not concurrent so that requests are processed in the order received.
     private lazy var operationQueue: OperationQueue = {
@@ -39,7 +42,7 @@ open class BaseNetworkServiceProvider: NSObject {
         operationQueue.maxConcurrentOperationCount = 1
         return operationQueue
     }()
-    
+
     private lazy var urlSession: URLSession = {
         URLSession(
             configuration: urlSessionConfiguration,
@@ -50,7 +53,7 @@ open class BaseNetworkServiceProvider: NSObject {
     private var _interceptor: NetworkServiceInterceptor?
     private var _maxRetryAttemps: UInt = defaultRetryAttemps
     private var _headers: [String: String] = [:]
-    
+
     public required init(config: URLSessionConfiguration) {
         urlSessionConfiguration = config
         super.init()
@@ -80,7 +83,7 @@ open class BaseNetworkServiceProvider: NSObject {
                             eror: error.localizedDescription,
                             contentBody: postParams)
                     }
-                    
+
                 } else {
                     let httpBodyString = HttpUtil.buildHttpBodyString(params: postParams)
                     data = httpBodyString.data(using: encoding)
@@ -104,27 +107,27 @@ open class BaseNetworkServiceProvider: NSObject {
         guard let data = data else {
             return nil
         }
-        
+
         var content: Any? = data
-        
+
         switch contentType {
         case is NSString.Type, is String.Type:
             content = String(data: data, encoding: encoding)
         case is NSDictionary.Type, is DomainModel.Type:
             var dictionary: NSDictionary?
-            
+
             if MimeType.isJson(mimeType) {
                 dictionary = try JsonModel.parseJsonData(data)
             } else if MimeType.isXml(mimeType) {
-//                let xmlParser = XmlParser()
+                //                let xmlParser = XmlParser()
             }
-            
+
             if let domainModelType = contentType as? DomainModel.Type {
                 content = domainModelType.init(with: dictionary)
             } else {
                 content = dictionary
             }
-            
+
         case let decodableType as Decodable.Type:
             if MimeType.isJson(mimeType) {
                 content = try JSONDecoder().decode(decodableType, from: data)
@@ -136,16 +139,16 @@ open class BaseNetworkServiceProvider: NSObject {
     }
 
     private class SessionDataDelegate: NSObject, URLSessionDataDelegate {
-        
+
         private weak var provider: NetworkServiceProvider?
-        
+
         private var interceptor: NetworkServiceInterceptor? {
             provider?.interceptor
         }
         required init(provider: NetworkServiceProvider) {
             self.provider = provider
         }
-        
+
         public func urlSession(_ session: URLSession,
                                didReceive challenge: URLAuthenticationChallenge,
                                completionHandler: @escaping SessionDataHandler)
@@ -155,7 +158,7 @@ open class BaseNetworkServiceProvider: NSObject {
                 completionHandler(.cancelAuthenticationChallenge, nil)
                 return
             }
-            
+
             var urlCredential: URLCredential?
             var disposition = URLSession.AuthChallengeDisposition.performDefaultHandling
 
@@ -163,11 +166,11 @@ open class BaseNetworkServiceProvider: NSObject {
                 urlCredential = credential
                 disposition = .useCredential
             }
-            
+
             completionHandler(disposition, urlCredential)
         }
     }
-
+    
     private class SessionTaskToken: AsyncToken, URLSessionTaskDelegate  {
         private var task: URLSessionTask!
 
@@ -175,16 +178,16 @@ open class BaseNetworkServiceProvider: NSObject {
             self.task = task
             super.init()
         }
-        
+
         required override init() {
             super.init()
         }
-        
+
         override func cancel() {
             self.task.cancel()
             super.cancel()
         }
-        
+
         func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
             self.task = task
         }
@@ -204,7 +207,7 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
             synchronized { self._interceptor = newValue }
         }
     }
-    
+
     public var headers: [String : String] {
         get {
             synchronized { _headers}
@@ -213,19 +216,20 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
             synchronized { self._headers = newValue}
         }
     }
-    
+
     public func start() {
         operationQueue.isSuspended = false
     }
-    
+
     public func stop() {
         operationQueue.isSuspended = true
     }
-    
+
     public func shutdown() {
         stop()
         urlSession.invalidateAndCancel()
     }
+
     public func process(
         _ request: NetworkRequest,
         content: Any?,
@@ -236,19 +240,10 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
         .init()
     }
 
-    public func process(
-        _ request: NetworkRequest,
-        content: Any?)
-    async throws -> AsyncToken
-    {
-        let asyncToken = SessionTaskToken()
-        
-        /// Allow for optional preprocessing
-        interceptor?.inspect(request: request)
-        
+    private func buildURLRequest(_ request: NetworkRequest, _ content: Any?) -> URLRequest {
         var urlRequest = request.buildURLRequest(headers: headers)
         
-        if let contentData = try convertContentData(content, mimeType: request.mimeType, encoding: request.encoding) {
+        if let contentData = try? convertContentData(content, mimeType: request.mimeType, encoding: request.encoding) {
             urlRequest.addValue("\(contentData.count)", forHTTPHeaderField: HttpHeader.contentLength)
             urlRequest.httpBody = contentData
         } else {
@@ -264,12 +259,25 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
         if let securityHeaders = interceptor?.securityHeaders(for: request, containing: urlRequest.httpBody) {
             securityHeaders.forEach { urlRequest.addValue($1, forHTTPHeaderField: $0) }
         }
-        let urlRequestF = urlRequest
+        return urlRequest
+    }
 
+    public func process(
+        _ request: NetworkRequest,
+        content: Any?)
+    async throws -> AsyncToken
+    {
+        let asyncToken = SessionTaskToken()
+        /// Allow for optional preprocessing
+        let interceptor = self.interceptor
+        interceptor?.inspect(request: request)
         
         Task(priority: .background) {
+            let urlRequest = buildURLRequest(request, content)
+
             do {
-                let response: (data: Data, urlResponse: URLResponse) = try await urlSession.data(for: urlRequestF, delegate: asyncToken)
+                logger.debug("urlRequest: \(urlRequest)")
+                let response: (data: Data, urlResponse: URLResponse) = try await urlSession.data(for: urlRequest, delegate: asyncToken)
                 var urlResponse: URLResponse?
                 urlResponse = response.urlResponse
                 let data =  response.data
@@ -287,11 +295,9 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
                     mimeType: mimeType,
                     timeStamp: .init(),
                     error: nil)
-                self.callbackQueue.async {
-                    self.didCompleteRequest(asyncToken, request: request, response: networkResponse)
+                self.callbackQueue.async { [weak self] in
+                    self?.didCompleteRequest(asyncToken, request: request, response: networkResponse)
                 }
-                
-                
             } catch let error {
                 let mimeType = request.responseMimeType ?? request.headers[HttpHeader.accept] ?? request.mimeType
                 let networkResponse = NetworkResponse(
@@ -301,8 +307,8 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
                     mimeType: mimeType,
                     timeStamp: .init(),
                     error: error)
-                self.callbackQueue.async {
-                    self.didCompleteRequest(asyncToken, request: request, response: networkResponse)
+                self.callbackQueue.async { [weak self] in
+                    self?.didCompleteRequest(asyncToken, request: request, response: networkResponse)
                 }
             }
         }

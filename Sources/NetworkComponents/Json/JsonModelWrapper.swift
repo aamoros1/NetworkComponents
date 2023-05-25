@@ -90,8 +90,6 @@ class JsonModelWrapper<TValue: NSObject>: NSDictionary {
      Return a copy of the backing dictionary
      
      - Returns: a copy the backing dictionary
-     
-     - Since: IOS-2797
      */
     override func copy(with zone: NSZone?) -> Any {
         var copy = [AnyHashable: Any]()

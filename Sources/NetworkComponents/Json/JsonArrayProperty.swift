@@ -309,7 +309,6 @@ open class JsonArrayProperty<TValue: NSObject>: BaseJsonProperty<TValue> {
     open override func isEqual(_ object: Any?) -> Bool {
         if super.isEqual(object) {
             if let other = object as? JsonArrayProperty<TValue> {
-                // IOS:2797 - Refactored original logic to reusable method in JSArrayWrapper
                 return JsonArrayWrapper.isEqual(self.nativeValue, otherArray: other.nativeValue)
             }
         }

@@ -10,8 +10,8 @@ import Foundation
 public class NetworkRequest: NSObject {
     let url: URL
     let method: String
-    var headers: [String: String] = [:]
-    public var encoding: String.Encoding = .utf8
+    public var headers: [String: String] = [:]
+    public var encoding: Encoding = .utf8
     public var cachePolicy = URLRequest.CachePolicy.useProtocolCachePolicy
     public var timeout: TimeInterval = 0
     
@@ -27,7 +27,7 @@ public class NetworkRequest: NSObject {
         super.init()
     }
 
-    func buildURLRequest(headers: [String: String]) -> URLRequest {
+    open func buildURLRequest(headers: [String: String]) -> URLRequest {
         var urlRequest = URLRequest(url: url.appendingQueryParams(queryParams), cachePolicy: cachePolicy)
 
         urlRequest.httpMethod = method
@@ -48,7 +48,7 @@ public class NetworkRequest: NSObject {
             let mimeFormat = MimeType.format(mimeType, with: HttpUtil.lookupCharset(for: encoding))
             urlRequest.addValue(mimeFormat, forHTTPHeaderField: HttpHeader.contentType)
         }
-        
+        print(urlRequest.url)
         return urlRequest
     }
 }

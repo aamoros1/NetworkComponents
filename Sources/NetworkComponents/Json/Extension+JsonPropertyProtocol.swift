@@ -79,7 +79,7 @@ extension JsonPropertyProtocol {
     }
 }
 
-extension NSString {
+public extension NSString {
     static func onoffString(_ boolValue: Bool) -> NSString {
         boolValue ? "ON" : "OFF"
     }
@@ -97,7 +97,7 @@ extension NSString {
     }
 }
 
-extension String {
+public extension String {
     static func onoffString(_ boolValue: Bool) -> NSString {
         boolValue ? "ON" : "OFF"
     }

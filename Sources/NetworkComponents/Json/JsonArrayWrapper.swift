@@ -94,8 +94,6 @@ class JsonArrayWrapper<TValue: NSObject>: NSArray {
      Return a copy of the backing array
      
      - Returns: a copy the backing array
-     
-     - Since: IOS-2797
      */
     override func copy(with zone: NSZone?) -> Any {
         var copy = [NSObject]()
@@ -120,8 +118,6 @@ class JsonArrayWrapper<TValue: NSObject>: NSArray {
      - Parameter otherArray: the second array in the comparason
      
      - Returns: true if both are nil or both contains the same contents
-     
-     - Since: IOS-2797
      */
     class func isEqual(_ thisArray: [TValue?]?, otherArray: [TValue?]?) -> Bool {
         if let thisArray = thisArray {
