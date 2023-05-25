@@ -17,7 +17,7 @@ public class NetworkRequest: NSObject {
     
     public var mimeType: String?
     public var queryParams: [String: String]?
-    public var responeType: AnyObject.Type?
+    public var responeType: Any.Type?
     public var responseMimeType: String?
 
     public required init(url: URL, method: String) {
