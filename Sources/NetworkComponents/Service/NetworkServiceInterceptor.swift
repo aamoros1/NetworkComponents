@@ -56,7 +56,7 @@ public protocol NetworkServiceProvider: NSObjectProtocol {
     ///   parameters for form submission or data in the request body. How this is interprested is based on
     ///   the "Content-Type" header.
     ///   - completionHandler: The handler to be called when the Network Response when the request has been processed.
-    func process(_ request: NetworkRequest, content: Any?) async throws -> AsyncToken
+    func process(_ request: NetworkRequest, content: Any?) async -> AsyncToken
     
     func process(_ request: NetworkRequest, content: Any?, completionHandler: NetworkResponseHandler?) throws -> AsyncToken
 }

@@ -265,7 +265,7 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
     public func process(
         _ request: NetworkRequest,
         content: Any?)
-    async throws -> AsyncToken
+    async -> AsyncToken
     {
         let asyncToken = SessionTaskToken()
         /// Allow for optional preprocessing
@@ -274,18 +274,18 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
         
         Task(priority: .background) {
             let urlRequest = buildURLRequest(request, content)
+            var urlResponse: URLResponse? = nil
 
             do {
                 logger.debug("urlRequest: \(urlRequest)")
                 let response: (data: Data, urlResponse: URLResponse) = try await urlSession.data(for: urlRequest, delegate: asyncToken)
-                var urlResponse: URLResponse?
                 urlResponse = response.urlResponse
                 let data =  response.data
                 let mimeType = request.responseMimeType ?? urlResponse?.mimeType ?? request.headers[HttpHeader.accept] ?? request.mimeType
                 let encoding = HttpUtil.lookupEncoding(for: urlResponse?.textEncodingName) ?? request.encoding
                 let aContent = try parseContentData(
                     data,
-                    contentType: request.responeType,
+                    contentType: request.responseType,
                     mimeType: mimeType,
                     encoding: encoding)
                 let networkResponse = NetworkResponse(
@@ -302,7 +302,7 @@ extension BaseNetworkServiceProvider: NetworkServiceProvider {
                 let mimeType = request.responseMimeType ?? request.headers[HttpHeader.accept] ?? request.mimeType
                 let networkResponse = NetworkResponse(
                     for: request,
-                    with: nil,
+                    with: urlResponse,
                     content: content,
                     mimeType: mimeType,
                     timeStamp: .init(),

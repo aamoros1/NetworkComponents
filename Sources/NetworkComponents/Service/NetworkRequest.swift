@@ -17,7 +17,7 @@ public class NetworkRequest: NSObject {
     
     public var mimeType: String?
     public var queryParams: [String: String]?
-    public var responeType: Any.Type?
+    public var responseType: Any.Type?
     public var responseMimeType: String?
 
     public required init(url: URL, method: String) {
@@ -48,7 +48,7 @@ public class NetworkRequest: NSObject {
             let mimeFormat = MimeType.format(mimeType, with: HttpUtil.lookupCharset(for: encoding))
             urlRequest.addValue(mimeFormat, forHTTPHeaderField: HttpHeader.contentType)
         }
-        print(urlRequest.url)
+
         return urlRequest
     }
 }
